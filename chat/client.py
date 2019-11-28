@@ -1,61 +1,68 @@
 #!/usr/bin/env python3
 
-from socket import *
-from threading import Thread
-from cryptography.fernet import Fernet #
+import socket, subprocess, sys, os
+from cryptography.fernet import Fernet
 
-def receive():
-    
-    key = client_socket.recv(BUFSIZ) #recebe a chave do servidor
-    global cipher #variavel global para definicao da cifra
-    cipher = Fernet(key) #cifra
-    print ("A chave de encriptação recebida do servidor é", key.decode())
-    
-    while True:
-        ciphermsg = client_socket.recv(BUFSIZ).decode()
-        s = ciphermsg.split(":")
-        #msg = cipher.decrypt(ciphermsg)
-        #msg = msg.decode()
-        #print (msg)
-        #print (s[1]) #FIQUEI AQUI!! da erro ao desencriptar porque o nome nao vai encruptador. tentar seprar o nome ou encripta-lo tambem
-        print (ciphermsg)
-        #msg = msg.decode()
-        """if msg == "{quit}":
-            client_socket.close()
-            break
-        if not msg:
-            break
-        print(msg)"""
+subprocess.call('clear',shell=True)
 
+print ("""\
+      _           _   
+     | |         | |  
+  ___| |__   __ _| |_ 
+ / __| '_ \ / _` | __|
+| (__| | | | (_| | |_ 
+ \___|_| |_|\__,_|\__|                                               
 
-def send():
-    while True:
-        msg = input()
-        msg = msg.encode()
-        #print (cipher)
-        ciphermsg = cipher.encrypt(msg)
-        client_socket.send(ciphermsg)
-        #client_socket.send(bytes(msg, "utf8"))
-        if msg == "{quit}":
-            break
+Mestrado em Engenharia de Segurança Informática 2019/20
+Disciplina: Linguagens de Programação Dinâmicas
+Aluno: Afonso Rodrigues [19025]
+Tool: Chat encriptado
+""")
 
+print ("##### C L I E N T ######\n")
 
-HOST = "127.0.0.1"#input('Enter host: ')
-PORT = 33000#input('Enter port: ')
-if not PORT:
-    PORT = 33000
-else:
-    PORT = int(PORT)
+s = socket.socket()
+#shost = socket.gethostname()
+#ip = socket.gethostbyname(shost)
+host = input(str("Endereço do servidor: "))
+#host = "172.16.10.20"
+name = input(str("\nComo te chamas? "))
+port = 1234
 
-BUFSIZ = 1024
-ADDR = (HOST, PORT)
+print("\nA ligar ao servidor ", host, "(", port, ")\n")
 
-client_socket = socket(AF_INET, SOCK_STREAM)
-client_socket.connect(ADDR)
+s.connect((host, port))
+print("Sucesso...\n")
 
-receive_thread = Thread(target=receive)
-send_thread = Thread(target=send)
-receive_thread.start()
-send_thread.start()
-receive_thread.join()
-send_thread.join()
+#recebe a chave do servidor
+key = s.recv(1024) 
+cipher = Fernet(key) #cifra
+print ("A chave de encriptação recebida do servidor é", key.decode())
+
+#envia nome do parceiro
+s.send(name.encode())
+
+#recebe nome do servidor 
+s_name = s.recv(1024)
+s_name = cipher.decrypt(s_name)
+s_name = s_name.decode() 
+print("\nSessão estabelecida com", s_name, ". \nEscreve hasta para sair do chat.\n")
+
+while True:
+    #recebe mensagem do servidor
+    message = s.recv(1024) 
+    message = cipher.decrypt(message)
+    message = message.decode()
+    print(s_name, ":", message)
+    message = input(str("Eu: "))
+    if message == "hasta":
+        message = "Saiu do chat!"
+        message = message.encode()
+        message = cipher.encrypt(message)
+        s.send(message) 
+        s.close()
+        break
+    #envia mensagem para o servidor
+    message = message.encode()
+    message = cipher.encrypt(message)
+    s.send(message) 

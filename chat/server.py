@@ -1,77 +1,113 @@
 #!/usr/bin/env python3
-"""Server for multithreaded (asynchronous) chat application."""
-from socket import AF_INET, socket, SOCK_STREAM
-from threading import Thread
-from cryptography.fernet import Fernet #
+
+"""
+to-do:
+1. gravar em sqlite FEITO
+2. passar para funcoes
+3. password para entrar
+"""
+
+import socket, subprocess, sys, os
+from cryptography.fernet import Fernet
+import sqlite3
+from datetime import datetime
+
+subprocess.call('clear',shell=True)
+
+print ("""\
+      _           _   
+     | |         | |  
+  ___| |__   __ _| |_ 
+ / __| '_ \ / _` | __|
+| (__| | | | (_| | |_ 
+ \___|_| |_|\__,_|\__|                                                
+
+Mestrado em Engenharia de Segurança Informática 2019/20
+Disciplina: Linguagens de Programação Dinâmicas
+Aluno: Afonso Rodrigues [19025]
+Tool: Chat encriptado
+""")
+
+print ("""\
+##### S E R V E R ######\n
+Inicia o programa client.py para iniciar a comunicação
+""")
+
+#bd sqlite
+dbName = "./chat/chat.db"
+dbIsNew = not os.path.exists(dbName)
+
+connbd=sqlite3.connect(dbName)
+if dbIsNew:
+    sql = """create table chat (
+    id  integer primary key autoincrement not null,
+    ip  text,
+    name    text,
+    type    text,
+    msg     text,
+    cipherkey    text,
+    timestamp timestamp);"""
+    connbd.executescript(sql)
+    connbd.commit()
+    connbd.close()
+    print ("Base dados criado com sucesso\n")
 
 #chave aes
 key = Fernet.generate_key()
-print ("A chave de encriptação a enviar é", key.decode(), "\n")
 cipher = Fernet(key)
+print ("A chave de encriptação a enviar é", key.decode(), "\n")
 
+s = socket.socket()
+host = socket.gethostname()
+ip = socket.gethostbyname(host)
+port = 1234
+s.bind((host, port))
+print("IP do servidor para transmitir ao cliente", ip,"\n")
 
-def accept_incoming_connections():
-    """Sets up handling for incoming clients."""
-    while True:
-        client, client_address = SERVER.accept()
-        client.send(bytes(key)) #envia chave aes para o cliente
-        print("O cliente %s:%s ligou-se." % client_address)
-        client.send(bytes("\nHowdy stranger! Escreve o teu nome!", "utf8"))
-        addresses[client] = client_address
-        Thread(target=handle_client, args=(client,)).start()
+name = input("Como te chamas? ")
+           
+s.listen(1)
+print("\nEsperando cliente...\n")
 
+conn, addr = s.accept()
+print("Cliente ligado ", addr[0], "(", addr[1], ")\n")
 
-def handle_client(client):  # Takes client socket as argument.
-    """Handles a single client connection."""
+#envia chave de encriptação
+conn.send(bytes(key))
 
-    #name = client.recv(BUFSIZ).decode("utf8")
-    ciphername = client.recv(BUFSIZ)
-    name = cipher.decrypt(ciphername)
-    name = name.decode()
-    welcome = 'Welcome %s! If you ever want to quit, type {quit} to exit.' % name
-    client.send(bytes(welcome, "utf8"))
-    msg = "%s has joined the chat!" % name
-    msg = msg.encode()
-    ciphermsg = cipher.encrypt(msg)
-    ciphermsg = ciphermsg
-    broadcast(ciphermsg, "utf8")
-    print (ciphername)
-    clients[client] = name
+#recebe nome do cliente
+c_name = conn.recv(1024) 
+c_name = c_name.decode() 
+print(c_name, "ligou-se com usando o socket", addr[0], ":", addr[1],". \nEscreve hasta para sair do chat.\n")
 
-    while True:
-        msg = client.recv(BUFSIZ)
-        if msg != bytes("{quit}", "utf8"):
-            broadcast(msg, name+": ")
-        else:
-            client.send(bytes("{quit}", "utf8"))
-            client.close()
-            del clients[client]
-            broadcast(bytes("%s has left the chat." % name, "utf8"))
-            break
+#envia nome do servidor
+nameclr = name.encode()
+name = cipher.encrypt(nameclr)
+conn.send(name) 
 
-
-def broadcast(msg, prefix=""):  # prefix is for name identification.
-    """Broadcasts a message to all the clients."""
-
-    for sock in clients:
-        sock.send(bytes(prefix, "utf8")+msg)
-
-        
-clients = {}
-addresses = {}
-
-HOST = ''
-PORT = 33000
-BUFSIZ = 1024
-ADDR = (HOST, PORT)
-
-SERVER = socket(AF_INET, SOCK_STREAM)
-SERVER.bind(ADDR)
-
-if __name__ == "__main__":
-    SERVER.listen(5)
-    print("Waiting for connection...")
-    ACCEPT_THREAD = Thread(target=accept_incoming_connections)
-    ACCEPT_THREAD.start()
-    ACCEPT_THREAD.join()
-    SERVER.close()
+while True:
+    message = input(str("Eu: "))
+    if message == "hasta":
+        message = "Saiu do chat!"
+        message = message.encode()
+        message = cipher.encrypt(message)
+        conn.send(message) 
+        conn.close()
+        break
+    #envia mensagem para cliente
+    message = message.encode()
+    message = cipher.encrypt(message)
+    conn.send(message)
+    connbd=sqlite3.connect(dbName)
+    connbd.execute("insert into chat(ip, name,type,msg,cipherkey,timestamp) values (?,?,?,?,?,?)", (ip,nameclr,"server", message, key.decode(), datetime.now())) 
+    connbd.commit()
+    connbd.close()
+    #recebe mensagem do cliente
+    ciphermessage = conn.recv(1024) 
+    message = cipher.decrypt(ciphermessage)
+    message = message.decode() 
+    print(c_name, ":", message)
+    connbd=sqlite3.connect(dbName)
+    connbd.execute("insert into chat(ip, name,type,msg,cipherkey,timestamp) values (?,?,?,?,?,?)", (addr[0],c_name,"client", ciphermessage, key.decode(), datetime.now())) 
+    connbd.commit()
+    connbd.close()
