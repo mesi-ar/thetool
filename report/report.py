@@ -2,28 +2,8 @@
 
 import sqlite3, subprocess
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, landscape
 from reportlab.pdfgen import canvas
-
-subprocess.call('clear',shell=True)
-
-print ("""\
-                          | |  
- _ __ ___ _ __   ___  _ __| |_ 
-| '__/ _ \ '_ \ / _ \| '__| __|
-| | |  __/ |_) | (_) | |  | |_ 
-|_|  \___| .__/ \___/|_|   \__|
-         | |                   
-         |_|   
-
-Mestrado em Engenharia de Segurança Informática 2019/20
-Disciplina: Linguagens de Programação Dinâmicas
-Aluno: Afonso Rodrigues [19025]
-Tool: Report
-
->>>Foram gerados os relatórios de utilização das tools em formato PDF na directoria /report<<<
-
-""")
+import os
 
 def report(bd):
 
@@ -36,7 +16,8 @@ def report(bd):
 	rows = cur.fetchall()
 
 	#pdf
-	canvas_obj = canvas.Canvas("./report/report_" + bd + ".pdf",
+	pdf = "./report/report_" + bd + ".pdf"
+	canvas_obj = canvas.Canvas(pdf,
 	                           pagesize=(1800,800))
 
 	# Create textobject
@@ -55,8 +36,31 @@ def report(bd):
 
 	canvas_obj.drawText(textobject)
 	canvas_obj.save()
+
+	os.popen('evince ' + pdf)
  
-if __name__ == '__main__':	    
-    report("chat")
-    report("portscan")
+if __name__ == '__main__':	 
+	subprocess.call('clear',shell=True)
+
+	print ("""\
+                          | |  
+ _ __ ___ _ __   ___  _ __| |_ 
+| '__/ _ \ '_ \ / _ \| '__| __|
+| | |  __/ |_) | (_) | |  | |_ 
+|_|  \___| .__/ \___/|_|   \__|
+         | |                   
+         |_|   
+
+Instituto Politécnico de Beja
+Mestrado em Engenharia de Segurança Informática 2019/20
+Disciplina: Linguagens de Programação Dinâmicas
+Aluno: Afonso Rodrigues [19025]
+Tool: Report
+
+>>>Foram gerados os relatórios de utilização das tools em formato PDF na directoria /report<<<
+
+	""") 
+
+	report("chat")
+	report("portscan")
  

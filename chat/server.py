@@ -22,6 +22,7 @@ print ("""\
 | (__| | | | (_| | |_ 
  \___|_| |_|\__,_|\__|                                                
 
+Instituto Politécnico de Beja
 Mestrado em Engenharia de Segurança Informática 2019/20
 Disciplina: Linguagens de Programação Dinâmicas
 Aluno: Afonso Rodrigues [19025]
