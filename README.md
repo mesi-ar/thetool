@@ -22,7 +22,9 @@ python3 thetool.py [tool_a_executar]
 [tool_a_executar]:
 	portscan = efectua um varrimento aos portos abertos num segmento de rede e guarda em bdls 
 	conn = verifica as ligações activas nesta maquina, guarda-as em bd e permite gerar graficos de ocurrencias
-	chat = cria uma sala de conversação encriptada entre 2 elementos
+	chat-server = inicia o servidor de chat e cria uma sala de conversação encriptada entre 2 elementos
+	chat-client = inicia o cliente de chat e liga-se ao servidor previamente criado
 	logprocessor = processa ficheiro auth.log e gera relatorios pdf
 	report = cria relatorios em pdf da utilização das tools chat e portscan
+
 ```
