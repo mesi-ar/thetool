@@ -23,10 +23,7 @@ Tool: Chat encriptado
 print ("##### C L I E N T ######\n")
 
 s = socket.socket()
-#shost = socket.gethostname()
-#ip = socket.gethostbyname(shost)
 host = input(str("Endereço do servidor: "))
-#host = "172.16.10.20"
 name = input(str("\nComo te chamas? "))
 port = 1234
 
@@ -49,6 +46,7 @@ s_name = cipher.decrypt(s_name)
 s_name = s_name.decode() 
 print("\nSessão estabelecida com", s_name, ". \nEscreve hasta para sair do chat.\n")
 
+#ciclo de conversação
 while True:
     #recebe mensagem do servidor
     message = s.recv(1024) 

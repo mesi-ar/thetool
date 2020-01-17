@@ -1,13 +1,5 @@
 #!/usr/bin/python3
 
-"""
-TODO
-1. ver se ha auth.log com mais serviços
-2. criar mais paginas no pdf
-3. implementar tab completation no path
-
-"""
-
 import socket, subprocess, sys, os
 import sqlite3
 from datetime import datetime
@@ -17,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter, landscape
 
-#log para bd
+#le log para dentro da bd
 def log2bd(log):
 	f = open(log, "r")
 	lines = f.readlines()
@@ -26,7 +18,7 @@ def log2bd(log):
 		words = line.split()
 		ip = str(re.findall(r"(?:\b|^)((?:(?:(?:\d)|(?:\d{2})|(?:1\d{2})|(?:2[0-4]\d)|(?:25[0-5]))\.){3}(?:(?:(?:\d)|(?:\d{2})|(?:1\d{2})|(?:2[0-4]\d)|(?:25[0-5]))))(?:\b|$)",str(words[4:])))
 		
-		#remove bad chars
+		#remove caracteres indesejados
 		bad_chars = ["['","']","[]"]
 		for i in bad_chars : 
 			ip = ip.replace(i, '')
@@ -45,6 +37,7 @@ def log2bd(log):
 		connbd.commit()
 		connbd.close()
 
+#gera o relatorio 
 def report(dbName):
 
 	#bd
@@ -78,6 +71,7 @@ def report(dbName):
 
 	os.popen('evince ' + pdf)
 
+#cria a bd
 def bd(dbName):
 	os.remove(dbName)
 
@@ -127,7 +121,7 @@ Tool: LogProcessor [auth.log]
 	bdgeoip = geoip2.database.Reader('../final/geoip/GeoLite2-City.mmdb')
 
 	log = input("Qual é o caminho para o log [auth.log]?\n")
-	log = "/media/r2d2/data/mestrado/ano2/lpd/trabalho/final/logprocessor/logs/auth.log"
+	
 	log2bd(log)
 	r = input("Queres o relatorio em pdf?\n")
 	if r in ["s","S","SIM","Sim","sim"]:

@@ -5,9 +5,9 @@ from reportlab.lib import colors
 from reportlab.pdfgen import canvas
 import os
 
-def report(bd):
+def report(bd):#funcao para gerar relatorio PDF a partir de queries às bd existentes
 
-	#bd
+	#ligação à bd
 	dbName = "./" + bd + "/" + bd + ".db"
 	conn = sqlite3.connect(dbName)
 	conn.row_factory = sqlite3.Row

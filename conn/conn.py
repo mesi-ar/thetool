@@ -1,47 +1,64 @@
 #!/usr/bin/python3
 
 import os
-import sqlite3, subprocess
+import sqlite3
+import subprocess
 import geoip2.database
 from datetime import datetime
-#graph https://matplotlib.org/tutorials/introductory/lifecycle.html#sphx-glr-tutorials-introductory-lifecycle-py
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
-def conn2bd():
+
+def conn2bd(): #funcao de avaliaão das ligações existentes. actualiza a bd com a informação recolhida
     response = os.popen('netstat -4tnp')
-    for line in response.readlines()[2:]:
+    for line in response.readlines()[2:]:#começa na 2a linha para excluir o cabeçalho
         print (line)
         words = line.split()
-        
-        #foreign
-        foreign = words[4] 
+
+        #definição de ip externo
+        foreign = words[4]
         foreign = foreign.split(":")
 
-        #city
+        #identificação da localizaçao do ip externo
         try:
             ip_geo = bdgeoip.city(foreign[0])
             city = ip_geo.city.names['en'] + ", " + ip_geo.country.iso_code
             country = ip_geo.country.names['en']
-        except:
+        except BaseException:
             city = "ND"
             country = "ND"
             pass
-    
-        #program
-        program = words[6]
-        program = program.split("/")
 
-        connbd=sqlite3.connect(dbName)
-        connbd.execute("insert into conn (proto, local, foreig, state, program, city, country, timestamp) values (?,?,?,?,?,?,?,?)", (words[0], words[3], foreign[0], words[5], program[1], city, country, datetime.now())) 
+        #identificaçao do programa que realizou a comunicação
+        try:
+            program = words[6]
+            program = program.split("/")
+            program = program[1]
+
+        except BaseException:
+            program = "ND"
+            pass
+
+        #actualização da bd
+        connbd = sqlite3.connect(dbName)
+        connbd.execute(
+            "insert into conn (proto, local, foreig, state, program, city, country, timestamp) values (?,?,?,?,?,?,?,?)",
+            (words[0],
+             words[3],
+                foreign[0],
+                words[5],
+                program,
+                city,
+                country,
+                datetime.now()))
         connbd.commit()
         connbd.close()
 
-def bd(dbName):
+
+def bd(dbName):#função de criação da base de dados
     dbIsNew = not os.path.exists(dbName)
 
-    connbd=sqlite3.connect(dbName)
+    connbd = sqlite3.connect(dbName)
 
     if dbIsNew:
         sql = """create table conn (
@@ -60,46 +77,48 @@ def bd(dbName):
         connbd.close()
         print ("Base dados criado com sucesso\n")
 
-def graph(column):
-    y = []#number occurencies
-    x = [] #list of column
 
-    connbd=sqlite3.connect(dbName)
+def graph(column):#função de desenho do grafico
+    y = []  #numero de ocorrencias
+    x = []  #colunas
 
-    #country list
-    columnsql = "SELECT DISTINCT " + column + " FROM conn"
-    countrycur = connbd.cursor()
-    countrycur.execute(columnsql)
-    countryrows = countrycur.fetchall()
-    for c in countryrows:
+    connbd = sqlite3.connect(dbName)
+
+    columnsql = "SELECT DISTINCT " + column + " FROM conn" #identifica valores unicos para a coluna sobre a qual se quer fazer o grafico
+    ccur = connbd.cursor()
+    ccur.execute(columnsql)
+    crows = ccur.fetchall()
+    for c in crows:#para cada valor da coluna, remove caracteres indesejados, conta as ocorrencias e alimenta as variaveis que irao ser x e y do grafico
         c = str(c)
-        #remove bad chars
-        bad_chars = ["(",")",",","'","[","]"]
-        for i in bad_chars : 
+        #remove caracteres indesejados
+        bad_chars = ["(", ")", ",", "'", "[", "]"]
+        for i in bad_chars:
             c = c.replace(i, '')
-        #count ocurrencies
-        ocurrsql = "SELECT count (" + column + ") from conn where " + column + " = '" + c + "'"
+        #conta ocorrencias
+        ocurrsql = "SELECT count (" + column + \
+            ") from conn where " + column + " = '" + c + "'"
         occurcur = connbd.cursor()
         occurcur.execute(ocurrsql)
         occurrows = occurcur.fetchall()
         occurrows = str(occurrows)
-        for i in bad_chars : 
+        for i in bad_chars:
             occurrows = occurrows.replace(i, '')
+        #alimenta x e y
         x.append(c)
         y.append(int(occurrows))
 
-    #print graph 
+    #gera o grafico de barras
     fig, ax = plt.subplots()
     ax.barh(x, y)
     ax.set_title('Occurrencias por ' + column)
     plt.style.use('fivethirtyeight')
 
     plt.show()
-    
-   
+
+
 if __name__ == '__main__':
-    subprocess.call('clear',shell=True)
-   
+    subprocess.call('clear', shell=True)
+
     print ("""\
   ___ ___  _ __  _ __  
  / __/ _ \| '_ \| '_ \ 
@@ -113,24 +132,25 @@ Aluno: Afonso Rodrigues [19025]
 Tool: Conn
 
     """)
-    
-    #bd sqlite
+
+    # bd sqlite
     dbName = "./conn/conn.db"
     bd(dbName)
 
-    #bd geoip
+    # bd geoip
     bdgeoip = geoip2.database.Reader('./geoip/GeoLite2-City.mmdb')
 
-    while True:
+    while True: #ciclo de consulta das ligações activas e actualização da bd
         a = input("Queres consultar as ligações activas? (Sim | Nao)\n")
-        if a in ["s","S","SIM","Sim","sim"]:
+        if a in ["s", "S", "SIM", "Sim", "sim"]:
             conn2bd()
         else:
-            break 
+            break
 
-    #graph
+    #ciclo de geraçao de grafico
     while True:
-        r = input("Queres gerar um grafico de ocurrencias? (nao | protocolo | ip | programa | pais)\n")
+        r = input(
+            "Queres gerar um grafico de ocurrencias? (nao | protocolo | ip | programa | pais)\n")
         if r == "nao":
             break
         elif r == "pais":

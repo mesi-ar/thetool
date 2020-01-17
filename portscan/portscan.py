@@ -5,9 +5,11 @@ import sqlite3
 from datetime import datetime
 import geoip2.database
 
-global ip1, ip2, por1, port2, loip1, loip2
+global ip1, ip2, por1, port2, loip1, loip2 #variaveis globais
 
-def ipcheck(ip):
+#declaração de funções
+
+def ipcheck(ip): #função de validação de ip baseada em expressões regulares
 	regip = "(?:\b|^)((?:(?:(?:\d)|(?:\d{2})|(?:1\d{2})|(?:2[0-4]\d)|(?:25[0-5]))\.){3}(?:(?:(?:\d)|(?:\d{2})|(?:1\d{2})|(?:2[0-4]\d)|(?:25[0-5]))))(?:\b|$)"
 	match = re.match(regip, ip)
 	if match:
@@ -15,13 +17,13 @@ def ipcheck(ip):
 	else:
 	    return False
 
-def portcheck(port):
-	if port >= 1 and port <= 65555:
+def portcheck(port): #função de validação de porto
+	if port >= 1 and port <= 65535:
 		return True	
 	else:
 		return False
 
-def bd(dbName):
+def bd(dbName): #função de criação da base de dados
     dbIsNew = not os.path.exists(dbName)
 
     connbd=sqlite3.connect(dbName)
@@ -64,32 +66,33 @@ Tool: Portscan
 
 	host = socket.gethostname()
 	ip = socket.gethostbyname(host)
-	print("Endereço IP[v4] local:", ip,"\n")
+	print("Endereço IP[v4] local:", ip,"\n") #imprime endereço ip local
 
 	#bd sqlite
 	dbName = "./portscan/portscan.db"
 	bd(dbName)
 
 	#bd geoip
-	bdgeoip = geoip2.database.Reader('../final/geoip/GeoLite2-City.mmdb')
+	bdgeoip = geoip2.database.Reader('../final/geoip/GeoLite2-City.mmdb') #variavel de inciação da base de dados GeoIP
 
-	#ip1
+	#ciclo de introdução e validação de ip inicial
 	while True:
 		ip1 = input("Introduz o IP inicial [IPv4]: ")
 		if not ip1:
 			print ("Esqueceste de introduzir o IP...!")
 		elif ipcheck(ip1) == True:
 			loip1 = ip1.split(".")
-			loip1 = int(loip1[3])
+			loip1 = int(loip1[3]) #identificaçao de ultimo octeto do ip introduzido
 			break
 		else:
 			print ("Erro na formatação do IP!")
 
-	#ip2
+	#ciclo de introdução e validação de ip final
 	while True:
 		ip2 = input("Introduz o IP final [Carrega em ENTER para ser o mesmo]: ")
 		if not ip2:
 			ip2 = ip1
+			loip2 = loip1
 			break
 		elif ipcheck(ip2) == True:
 			loip2 = ip2.split(".")
@@ -102,9 +105,9 @@ Tool: Portscan
 			print ("Erro na formatação do IP!")
 
 
-	#port1
+	#ciclo de introdução e validação de porto inicial
 	while True:
-		port1 = int(input("Introduz o porto inicial [1:62555]: "))
+		port1 = int(input("Introduz o porto inicial [1:65535]: "))
 		if not port1:
 			print ("Esqueceste de introduzir o porto...!")
 		elif portcheck(port1) == True:
@@ -112,7 +115,7 @@ Tool: Portscan
 		else:
 			print ("Erro na porta especificada")
 
-	#port2
+	#ciclo de introdução e validação de porto final
 	while True:
 		port2 = int(input("Introduz o porto final [1:62555][Carrega em ENTER para ser o mesmo]: "))
 		if not port2:
@@ -126,26 +129,26 @@ Tool: Portscan
 			print ("Erro na porta especificada")
 
 
-	t1 = datetime.now() #hora de inicio
+	t1 = datetime.now() #hora de inicio do processo
 
-	iprange = ip1.split(".")
+	iprange = ip1.split(".")#utilizado para definiar a gama de ips
 
-	#scan
+	#ciclo de execução
 	for x in range(loip1, (loip2 + 1)):
 
 		curr_ip = iprange[0] + "." + iprange[1] + "." + iprange[2] + "." + str(x)
 		print ("Endereço actual:-->", curr_ip)
 		
-		#valida de ip existe na bd geoip
+		#valida de ip existe na bd geoip e retira a localização
 		try:
 			curr_ip_geo = bdgeoip.city(curr_ip)
 			city = curr_ip_geo.city.names['en'] + ", " + curr_ip_geo.country.iso_code
 		except:
-			city = "ND"	
+			city = "ND"	#valor caso não exista na bd geoip
 			pass
 		print ("Localização:", city)
 				
-		for port in range(port1,port2):
+		for port in range(port1,port2):#ciclo de execução do portscan
 			sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 			socket.setdefaulttimeout(1)
 			result = sock.connect_ex((curr_ip,port))
