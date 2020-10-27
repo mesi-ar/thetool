@@ -1,4 +1,4 @@
-cryptography==2.6.1
+cryptography==3.2
 matplotlib==3.1.2
 geoip2==2.9.0
 reportlab==3.5.32
